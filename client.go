@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -27,45 +28,15 @@ func (c *Client) streamIn() {
 
 		switch msg.MessageType {
 		case "username":
-			usernameMessage := UsernameMessage{}
-			err = json.Unmarshal(msg.Payload, &usernameMessage)
+			err = c.handleUsernameMessage(msg.Payload)
 			if err != nil {
-				log.Printf("error: %v", err)
-				delete(c.nexus.clients, c)
-				break
+				panic(err)
 			}
-			var matched bool
-			for client, _ := range c.nexus.clients {
-				if client.username == usernameMessage.Body {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				c.username = usernameMessage.Body
-				fmt.Println(c)
-			} else {
-				log.Printf("error: Username is already taken")
-				errorMessage := UsernameTakenMessage{Body: "Username is already taken"}
-				b, err := json.Marshal(errorMessage)
-				if err != nil {
-					log.Printf("error: %v", err)
-					delete(c.nexus.clients, c)
-					break
-				}
-				message := Message{Payload: b, MessageType: "error"}
-				c.conn.WriteJSON(message)
-			}
-
 		case "chat":
-			chatMessage := ChatMessage{}
-			err = json.Unmarshal(msg.Payload, &chatMessage)
+			err = c.handleChatMessage(msg.Payload)
 			if err != nil {
-				log.Printf("error: %v", err)
-				delete(c.nexus.clients, c)
-				break
+				panic(err)
 			}
-			c.nexus.broadcast <- chatMessage
 		}
 	}
 
@@ -85,4 +56,50 @@ func (c *Client) streamOut() {
 
 	}
 
+}
+
+func (c *Client) handleUsernameMessage(payload json.RawMessage) error {
+	usernameMessage := UsernameMessage{}
+	err := json.Unmarshal(payload, &usernameMessage)
+	if err != nil {
+		log.Printf("error: %v", err)
+		delete(c.nexus.clients, c)
+		return errors.New("Couldn't unmarshal msg.Payload into a usernameMessage")
+	}
+	var matched bool
+	for client, _ := range c.nexus.clients {
+		if client.username == usernameMessage.Body {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		c.username = usernameMessage.Body
+		fmt.Println(c)
+	} else {
+		log.Printf("error: Username is already taken")
+		errorMessage := UsernameTakenMessage{Body: "Username is already taken"}
+		b, err := json.Marshal(errorMessage)
+		if err != nil {
+			log.Printf("error: %v", err)
+			delete(c.nexus.clients, c)
+			return errors.New("Couldn't marshal errorMessage")
+		}
+		message := Message{Payload: b, MessageType: "error"}
+		c.conn.WriteJSON(message)
+
+	}
+	return nil
+}
+
+func (c *Client) handleChatMessage(payload json.RawMessage) error {
+	chatMessage := ChatMessage{}
+	err := json.Unmarshal(payload, &chatMessage)
+	if err != nil {
+		log.Printf("error: %v", err)
+		delete(c.nexus.clients, c)
+		return errors.New("Couldn't unmarshal payload into chatMessage")
+	}
+	c.nexus.broadcast <- chatMessage
+	return nil
 }
