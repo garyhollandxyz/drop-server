@@ -1,0 +1,4 @@
+[
+  { "type": "username", "message": { "body": "Gary" } },
+  { "type": "chat", "message": { "body": "hello", "username": "Gary" } }
+]

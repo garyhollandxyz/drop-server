@@ -1,0 +1,66 @@
+<!-- websockets.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Drop</title>
+  </head>
+  <body>
+    <form>
+      <label>Username</label>
+      <input id="username" type="text" />
+      <label>Message</label>
+      <input id="input" type="text" />
+      <button onclick="send()" type="button">Send</button>
+    </form>
+
+    <form>
+      <label>Username</label>
+      <input id="username2" type="text" />
+      <button onclick="sendUsername()" type="button">Send Username</button>
+    </form>
+
+    <pre id="output"></pre>
+    <pre id="error"></pre>
+    <script>
+      const username = document.getElementById('username')
+      const username2 = document.getElementById('username2')
+      const input = document.getElementById('input')
+      const output = document.getElementById('output')
+      const socket = new WebSocket('ws://localhost:8080/ws')
+      const error = document.getElementById('error')
+
+      socket.onopen = function() {
+        output.innerHTML += 'Status: Connected\n'
+      }
+
+      socket.onmessage = function(e) {
+        const message = JSON.parse(e.data)
+        if (message.type === 'error') {
+          error.innerHTML += message.payload.body + '\n'
+          return
+        }
+        output.innerHTML += message.username + ': ' + message.body + '\n'
+        console.log(e)
+      }
+
+      function send() {
+        socket.send(
+          JSON.stringify({ username: username.value, body: input.value })
+        )
+        input.value = ''
+      }
+
+      function sendUsername() {
+        socket.send(
+          JSON.stringify({
+            type: 'username',
+            payload: { body: username2.value }
+          })
+        )
+      }
+    </script>
+  </body>
+</html>
