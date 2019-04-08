@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Client is a wrapper for a websocket connection
 type Client struct {
 	nexus    Nexus
 	send     chan ChatMessage
@@ -67,7 +68,7 @@ func (c *Client) handleUsernameMessage(payload json.RawMessage) error {
 		return errors.New("Couldn't unmarshal msg.Payload into a usernameMessage")
 	}
 	var matched bool
-	for client, _ := range c.nexus.clients {
+	for client := range c.nexus.clients {
 		if client.username == usernameMessage.Body {
 			matched = true
 			break

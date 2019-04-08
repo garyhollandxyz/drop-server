@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Nexus maintains a map of Clients and listens on its broadcast
+// channel for ChatMessages then sends them to all clients
 type Nexus struct {
 	clients   map[*Client]bool
 	broadcast chan ChatMessage
